@@ -3,6 +3,7 @@ import std.stdio;
 import std.algorithm;
 import std.array;
 import std.range;
+import std.typecons;
 
 
 template isDiffNode(T)
@@ -17,133 +18,119 @@ template isDiffNode(T)
 
 struct Operation(T) if (isDiffNode!T)
 {
+    alias Node = Rebindable!(const(T));
     enum Type : ubyte
     {
+        NOTHING,
         INSERT,
         MOVE,
         DELETE,
     }
 
-    Type type;
-    Node* parent;
-    Node* node;
-    Node* to;
+    static struct NodeInfo
+    {
+        bool original = true;
+        Node parent;
+        Node node;
+    }
+
+    Type type = Type.NOTHING;
+    NodeInfo to;
+    NodeInfo from;
 }
 
-
-class Node
+auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
 {
-    string m_label;
-    int m_type;
-    Node[] m_childs;
-
-    auto label() const
-    {
-        return m_label;
-    }
-
-    auto childs() const
-    {
-        return m_childs;
-    }
-
-    this(string label, int type = 0)
-    {
-        this.m_label = label;
-        this.m_type = type;
-    }
-
-    void add(Node n)
-    {
-        m_childs ~= n;
-    }
-
-    void remove(string label)
-    {
-        foreach (int i, Node n; m_childs)
-        {
-            if (n.label == label)
-            {
-                m_childs = std.algorithm.remove(m_childs, i);
-                break;
-            }
-        }
-    }
-
-    int opCmp(const Node b)
-    {
-        return cmp(m_label, b.m_label);
-    }
-
-    override string toString()
-    {
-        return m_label ~ " childs: " ~ map!(a => a.label)(m_childs).join(",") ~ "\n" ~ map!(a => a.toString())(m_childs).join("\n");
-    }
-}
-
-auto diff(T)(const ref T orig, const ref T dest) if (isDiffNode!T)
-{
-    alias Node = T;
-    alias NodePtr = const(Node)*;
-    alias NodePair = Tuple!(NodePtr, NodePtr);
+    alias Node = const(T);
+    alias NodePair = Tuple!(Node, Node);
     alias NodeArray = NodePair[];
+    alias Oper = Operation!Node;
 
     class ResultTree
     {
-        NodePtr orig;
-        NodePtr dest;
+        Rebindable!Node orig;
+        Rebindable!Node dest;
         ResultTree parent;
+        Rebindable!Node[] children;
     }
 
-    auto score(const Node* a, const Node* b)
+    auto score(Node a, Node b)
     {
         auto sa = map!(a => a.label)(a.childs());
         auto sb = map!(a => a.label)(b.childs());
         return walkLength(setIntersection(sa, sb));
     }
 
-    void toMap(const Node a, const Node parent, ref NodeArray[string] mp)
+    void toMap(Node a, Node parent, ref NodeArray[string] mp)
     {
 
-        mp[a.label()] ~= NodePair(&a, &parent);
+        mp[a.label()] ~= NodePair(a, parent);
         foreach (c; a.childs())
         {
             toMap(c, a, mp);
         }
     }
 
-    string computeAction(const Node b, const Node parent, ref NodeArray[string] mp, ResultTree tree)
+    Oper computeAction(Node b, Node parent, ref NodeArray[string] mp, ResultTree tree)
     {
         NodeArray* p = b.label in mp;
         string pl = (parent is null) ? "root" : parent.label;
         if (p is null)
         {
-            tree.dest = &b;
-            return "I " ~ pl ~ " " ~ b.label;
+            tree.dest = b;
+            Oper op1;
+            op1.type = Oper.Type.INSERT;
+            op1.from.original = false;
+            op1.from.node = b;
+            if (tree.parent !is null)
+            {
+                op1.to.original = tree.parent.dest is null;
+                op1.to.node = (op1.to.original ? tree.parent.orig : tree.parent.dest);
+            }
+            return op1;
         }
         else
         {
-            auto maxScore = minPos!((a1, a2) => score(a1[0], &b) < score(a2[0], &b))(*p);
+            auto maxScore = minPos!((a1, a2) => score(a1[0], b) < score(a2[0], b))(*p);
             assert(maxScore.length > 0);
             auto pair = maxScore[0];
             remove(*p, (*p).length - maxScore.length);
             tree.orig = pair[0];
             if (tree.parent !is null) {
-                if (tree.parent.orig == pair[1]) {
-                    return "";
+                if (tree.parent.orig is pair[1]) {
+                    return Oper();
                 }
             } else {
-                if (pair[1] !is null) {
-                    return "";
+                if (pair[1] is null) {
+                    return Oper();
                 }
             }
-            return "M " ~ pl ~ " " ~ b.label;
+            Oper op;
+            op.type = op.Type.MOVE;
+            op.from.original = true;
+            op.from.node = pair[0];
+            op.from.parent = pair[1] is null ? null : pair[1];
+            if (tree.parent is null)
+            {
+                op.to.node = null;
+            }
+            else
+            {
+                op.to.original = tree.parent.dest is null;
+                op.to.node = (op.to.original ? tree.parent.orig : tree.parent.dest);
+            }
+            return op;
         }
     }
 
-    string recurseAction(const Node b, const Node parent, ref NodeArray[string] mp, ResultTree tree)
+    Oper[] recurseAction(const Node b, const Node parent, ref NodeArray[string] mp, ResultTree tree)
     {
-        auto res = computeAction(b, parent, mp, tree) ~ "\n";
+        Oper[] res;
+        auto op = computeAction(b, parent, mp, tree);
+        if (op.type != op.Type.NOTHING)
+        {
+            res ~= op;
+        }
         foreach (c; b.childs)
         {
             auto resNode = new ResultTree;
@@ -153,7 +140,6 @@ auto diff(T)(const ref T orig, const ref T dest) if (isDiffNode!T)
         return res;
     }
 
-    string res;
     NodeArray[string] mp;
     toMap(orig, null, mp);
 
@@ -164,12 +150,69 @@ auto diff(T)(const ref T orig, const ref T dest) if (isDiffNode!T)
 
 void main()
 {
+
+}
+
+unittest
+{
+    class Node
+    {
+        string m_label;
+        int m_type;
+        Node[] m_childs;
+
+        auto label() const
+        {
+            return m_label;
+        }
+
+        auto childs() const
+        {
+            return m_childs;
+        }
+
+        this(string label, int type = 0)
+        {
+            this.m_label = label;
+            this.m_type = type;
+        }
+
+        void add(Node n)
+        {
+            m_childs ~= n;
+        }
+
+        int opCmp(const Node b) const
+        {
+            return cmp(m_label, b.m_label);
+        }
+
+        override string toString()
+        {
+            return m_label ~ " childs: " ~ map!(a => a.label)(m_childs).join(",") ~ "\n" ~ map!(a => a.toString())(m_childs).join("\n");
+        }
+    }
+
     auto a = new Node("a");
-    a.add(new Node("b"));
+    auto b = new Node("b");
     auto c = new Node("c");
-    c.add(new Node("d"));
+    auto d = new Node("d");
+    auto e = new Node("e");
+    auto f = new Node("f");
+    auto g = new Node("g");
+    auto h = new Node("h");
+
+    a.add(b);
     a.add(c);
-    writeln(a);
-    writeln(diff(a, c));
-    writeln("Edit source/app.d to start your project.");
+    c.add(d);
+    c.add(e);
+    e.add(f);
+    f.add(g);
+
+    auto ops = diff(a, c);
+
+    assert(ops.length == 1);
+    assert(ops[0].type == ops[0].type.MOVE);
+    assert(ops[0].from.node is c);
+    assert(ops[0].to.node is null);
 }
