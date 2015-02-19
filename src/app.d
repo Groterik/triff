@@ -11,8 +11,8 @@ template isDiffNode(T)
     enum bool isDiffNode = __traits(compiles, {
         T node;
         auto l = node.label();
-        auto c = node.childs();
-        //static assert(std.range.isInputRange!(typeof(c)));
+        auto c = node.children();
+        foreach (cc; c) {}
     });
 }
 
@@ -42,6 +42,7 @@ struct Operation(T) if (isDiffNode!T)
 auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
 {
     alias Node = const(T);
+    alias LabelType = typeof(T.init.label());
     alias NodePair = Tuple!(Node, Node);
     alias NodeArray = NodePair[];
     alias Oper = Operation!Node;
@@ -56,8 +57,8 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
 
     auto score(Node a, Node b)
     {
-        auto sa = map!(a => a.label)(a.childs());
-        auto sb = map!(a => a.label)(b.childs());
+        auto sa = map!(a => a.label)(a.children());
+        auto sb = map!(a => a.label)(b.children());
         return walkLength(setIntersection(sa, sb));
     }
 
@@ -65,7 +66,7 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
     {
 
         mp[a.label()] ~= NodePair(a, parent);
-        foreach (c; a.childs())
+        foreach (c; a.children())
         {
             toMap(c, a, mp);
         }
@@ -131,7 +132,7 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
         {
             res ~= op;
         }
-        foreach (c; b.childs)
+        foreach (c; b.children())
         {
             auto resNode = new ResultTree;
             resNode.parent = tree;
@@ -166,7 +167,7 @@ unittest
             return m_label;
         }
 
-        auto childs() const
+        auto children() const
         {
             return m_childs;
         }
