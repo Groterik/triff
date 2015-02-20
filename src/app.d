@@ -95,7 +95,7 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
             auto maxScore = minPos!((a1, a2) => score(a1[0], b) < score(a2[0], b))(*p);
             assert(maxScore.length > 0);
             auto pair = maxScore[0];
-            remove(*p, (*p).length - maxScore.length);
+            *p = remove(*p, (*p).length - maxScore.length);
             tree.orig = pair[0];
             if (tree.parent !is null) {
                 if (tree.parent.orig is pair[1]) {
@@ -146,7 +146,20 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
 
     auto tree = new ResultTree;
 
-    return recurseAction(dest, null, mp, tree);
+    auto res = recurseAction(dest, null, mp, tree);
+    foreach (arr; mp)
+    {
+        foreach (np; arr)
+        {
+            Oper op;
+            op.type = op.type.DELETE;
+            op.from.original = true;
+            op.from.node = np[0];
+            op.from.parent = np[1];
+            res ~= op;
+        }
+    }
+    return res;
 }
 
 void main()
@@ -212,8 +225,8 @@ unittest
 
     auto ops = diff(a, c);
 
-    assert(ops.length == 1);
-    assert(ops[0].type == ops[0].type.MOVE);
-    assert(ops[0].from.node is c);
-    assert(ops[0].to.node is null);
+    assert(ops.length == 3);
+    assert(ops.canFind!(op => (op.type == op.type.MOVE && op.from.node is c && op.to.node is null)));
+    assert(ops.canFind!(op => (op.type == op.type.DELETE && op.from.node is a && op.from.parent is null)));
+    assert(ops.canFind!(op => (op.type == op.type.DELETE && op.from.node is b && op.from.parent is a)));
 }
