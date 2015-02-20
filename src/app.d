@@ -172,7 +172,6 @@ unittest
     class Node
     {
         string m_label;
-        int m_type;
         Node[] m_childs;
 
         auto label() const
@@ -185,25 +184,14 @@ unittest
             return m_childs;
         }
 
-        this(string label, int type = 0)
+        this(string label)
         {
             this.m_label = label;
-            this.m_type = type;
         }
 
         void add(Node n)
         {
             m_childs ~= n;
-        }
-
-        int opCmp(const Node b) const
-        {
-            return cmp(m_label, b.m_label);
-        }
-
-        override string toString()
-        {
-            return m_label ~ " childs: " ~ map!(a => a.label)(m_childs).join(",") ~ "\n" ~ map!(a => a.toString())(m_childs).join("\n");
         }
     }
 
