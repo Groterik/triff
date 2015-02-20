@@ -45,6 +45,7 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
     alias LabelType = typeof(T.init.label());
     alias NodePair = Tuple!(Node, Node);
     alias NodeArray = NodePair[];
+    alias NodeMap = NodeArray[LabelType];
     alias Oper = Operation!Node;
 
     class ResultTree
@@ -62,7 +63,7 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
         return walkLength(setIntersection(sa, sb));
     }
 
-    void toMap(Node a, Node parent, ref NodeArray[string] mp)
+    void toMap(Node a, Node parent, ref NodeMap mp)
     {
 
         mp[a.label()] ~= NodePair(a, parent);
@@ -72,10 +73,9 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
         }
     }
 
-    Oper computeAction(Node b, Node parent, ref NodeArray[string] mp, ResultTree tree)
+    Oper computeAction(Node b, Node parent, ref NodeMap mp, ResultTree tree)
     {
         NodeArray* p = b.label in mp;
-        string pl = (parent is null) ? "root" : parent.label;
         if (p is null)
         {
             tree.dest = b;
@@ -124,7 +124,7 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
         }
     }
 
-    Oper[] recurseAction(const Node b, const Node parent, ref NodeArray[string] mp, ResultTree tree)
+    Oper[] recurseAction(const Node b, const Node parent, ref NodeMap mp, ResultTree tree)
     {
         Oper[] res;
         auto op = computeAction(b, parent, mp, tree);
@@ -141,7 +141,7 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
         return res;
     }
 
-    NodeArray[string] mp;
+    NodeMap mp;
     toMap(orig, null, mp);
 
     auto tree = new ResultTree;
