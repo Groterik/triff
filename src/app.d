@@ -229,4 +229,30 @@ unittest
     assert(ops.canFind!(op => (op.type == op.type.MOVE && op.from.node is c && op.to.node is null)));
     assert(ops.canFind!(op => (op.type == op.type.DELETE && op.from.node is a && op.from.parent is null)));
     assert(ops.canFind!(op => (op.type == op.type.DELETE && op.from.node is b && op.from.parent is a)));
+
+    auto zz = new Node("z");
+    auto zc = new Node("c");
+    auto zd = new Node("d");
+    auto ze = new Node("e");
+    auto zf = new Node("f");
+    auto zg = new Node("g");
+    auto zh = new Node("h");
+
+    zz.add(zc);
+    zc.add(ze);
+    ze.add(zd);
+    zc.add(zf);
+    zf.add(zg);
+
+    ops = diff(a, zz);
+
+    assert(ops.length == 6);
+    assert(ops.canFind!(op => (op.type == op.type.INSERT && op.from.node is zz && op.to.node is null)));
+    assert(ops.canFind!(op => (op.type == op.type.MOVE && op.from.node is c && op.to.node is zz)));
+    assert(ops.canFind!(op => (op.type == op.type.MOVE && op.from.node is d && op.to.node is e)));
+    assert(ops.canFind!(op => (op.type == op.type.MOVE && op.from.node is f && op.to.node is c)));
+    assert(ops.canFind!(op => (op.type == op.type.DELETE && op.from.node is a && op.from.parent is null)));
+    assert(ops.canFind!(op => (op.type == op.type.DELETE && op.from.node is b && op.from.parent is a)));
+
+
 }
