@@ -3,7 +3,20 @@
 	"description": "A minimal D application.",
 	"copyright": "Copyright © 2015, cleem",
 	"authors": ["cleem"],
-	"targetPath": "./bin",
+	"targetPath": "./lib",
+	"targetType": "library",
+	"configurations": [
+		{
+			"name": "library",
+			"targetType": "library"
+		},
+		{
+			"name": "files-example",
+			"targetType": "executable",
+			"targetPath": "./bin",
+			"sourceFiles": ["./examples/files.d"]
+		}
+	],
 	"dependencies": {
 	}
 }

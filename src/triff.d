@@ -162,11 +162,6 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
     return res;
 }
 
-void main()
-{
-
-}
-
 unittest
 {
     class Node
