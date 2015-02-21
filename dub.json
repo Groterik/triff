@@ -11,10 +11,11 @@
 			"targetType": "library"
 		},
 		{
-			"name": "files-example",
+			"name": "dirs-example",
 			"targetType": "executable",
 			"targetPath": "./bin",
-			"sourceFiles": ["./examples/files.d"]
+			"targetFileName": "diff-dirs",
+			"sourceFiles": ["./examples/dirs.d"]
 		}
 	],
 	"dependencies": {
