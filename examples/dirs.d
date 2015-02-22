@@ -15,11 +15,13 @@ class PathNode
 {
     bool m_isFile;
     string m_name;
+    string m_label;
     PathNode[] m_children;
 
-    this(string name, bool isFile = true)
+    this(string name, string label, bool isFile = true)
     {
         m_name = name;
+        m_label = label.length ? label : (name ~ (isFile ? "f" : ""));
         m_isFile = isFile;
     }
 
@@ -30,7 +32,7 @@ class PathNode
 
     string label() const
     {
-        return m_name ~ (m_isFile ? "f" : "");
+        return m_label;
     }
 
     string name() const
@@ -52,7 +54,7 @@ class PathNode
     PathNode getChild(string name, bool file = false)
     {
         auto cr = m_children.find!((a, b) => (a.name() == b))(name);
-        return cr.length ? cr[0] : add(new PathNode(name, file));
+        return cr.length ? cr[0] : add(new PathNode(name, null, file));
     }
 
     void print(int depth = 0)
@@ -74,11 +76,13 @@ class PathNode
 PathNode scanPath(string path)
 {
     import std.conv;
-    auto root = new PathNode(path, false);
+    auto root = new PathNode(path, "root", false);
     foreach (de; filter!(e => e.isFile)(dirEntries(path, SpanMode.breadth, false)))
     {
         auto node = root;
-        foreach (part; pathSplitter(de.name))
+        assert(de.name.startsWith(path));
+        import std.array : array;
+        foreach (part; array(pathSplitter(de.name))[array(pathSplitter(path)).length..$])
         {
             node = node.getChild(to!string(part));
         }
@@ -105,12 +109,8 @@ int main(string[] args)
 
     auto operations = diff(srcRootNode, dstRootNode);
 
-    writeln("Operations: ", operations.length);
-
     void printOperation(Operation!(const(PathNode)) op)
     {
-        writeln(op);
-        return;
         final switch (op.type)
         {
             case op.type.DELETE:
@@ -120,13 +120,20 @@ int main(string[] args)
             }
             case op.type.INSERT:
             {
-                writeln("cp ", buildPath(dstRootNode.name(), op.from.node.name()), " ",
-                               buildPath(srcRootNode.name(), op.to.node.name()));
+                write("cp ", buildPath(dstRootNode.name(), op.from.node.name()), " ");
+                if (op.to.node is srcRootNode)
+                {
+                    writeln(srcRootNode.name());
+                }
+                else
+                {
+                    writeln(buildPath(srcRootNode.name(), op.to.node.name()));
+                }
                 break;
             }
             case op.type.MOVE:
             {
-                writeln("mv ", buildPath(dstRootNode.name(), op.from.node.name()), " ",
+                writeln("mv ", buildPath(srcRootNode.name(), op.from.node.name()), " ",
                                buildPath(srcRootNode.name(), op.to.node.name()));
                 break;
             }

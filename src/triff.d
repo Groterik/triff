@@ -1,5 +1,3 @@
-import std.stdio;
-
 import std.algorithm;
 import std.array;
 import std.range;
@@ -96,6 +94,10 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
             assert(maxScore.length > 0);
             auto pair = maxScore[0];
             *p = remove(*p, (*p).length - maxScore.length);
+            if (!(*p).length)
+            {
+                mp.remove(b.label);
+            }
             tree.orig = pair[0];
             if (tree.parent !is null) {
                 if (tree.parent.orig is pair[1]) {
