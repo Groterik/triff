@@ -11,11 +11,18 @@
 			"targetType": "library"
 		},
 		{
-			"name": "dirs-example",
+			"name": "diff-dirs",
 			"targetType": "executable",
 			"targetPath": "./bin",
 			"targetFileName": "diff-dirs",
 			"sourceFiles": ["./examples/dirs.d"]
+		},
+		{
+			"name": "diff-json",
+			"targetType": "executable",
+			"targetPath": "./bin",
+			"targetFileName": "diff-json",
+			"sourceFiles": ["./examples/json.d"]
 		}
 	],
 	"dependencies": {

@@ -90,7 +90,7 @@ auto diff(T)(const T orig, const T dest) if (isDiffNode!T)
         }
         else
         {
-            auto maxScore = minPos!((a1, a2) => score(a1[0], b) < score(a2[0], b))(*p);
+            auto maxScore = minPos!((a1, a2) => score(a1[0], b) > score(a2[0], b))(*p);
             assert(maxScore.length > 0);
             auto pair = maxScore[0];
             *p = remove(*p, (*p).length - maxScore.length);
